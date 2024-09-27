@@ -1,4 +1,4 @@
-!/usr/bin/env bash
+#!/usr/bin/env bash
 
 git config --global user.name "LauraLundbye"
 git config --global user.email "202106724@post.au.dk" # adding git credentials 🙂
