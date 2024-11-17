@@ -1,0 +1,148 @@
+---
+title: "cultural_intro_a2"
+author: "Laura Lundbye"
+date: "2024-11-10"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+options(repos = c(CRAN = "https://cloud.r-project.org"))
+```
+
+```{r, results="hide", message=FALSE}
+install.packages('dslabs')
+install.packages('car')
+library(dplyr)
+library(ggplot2)
+library(dslabs)
+library(car)
+```
+## 1) Load  the 'divorce_margarine'dataset  from  the 'dslabs' package.  Investigate  the  correlation between  margarine  consumption  and  divorce  rates  in  Maine.  Would  an  increase  in  the preference for margarine lead to skyrocketing divorce rate?
+```{r, results="hide"}
+data(package = "dslabs")
+data("divorce_margarine")
+divorce_margarine
+```
+
+visually assessing correlation between predictor and outcome
+
+```{r, message=FALSE}
+ggplot(divorce_margarine, aes(x = margarine_consumption_per_capita, y = divorce_rate_maine)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE, color = "pink") +
+  labs(title = "Relationship between margarine consumption and divorce rates",
+       x = "Margarine consumption",
+       y = "Divorce rate")
+
+```
+
+fitting a linear model to further investigate correlation between predictor and outcome variable
+
+```{r}
+# Fit a linear model
+cor_model <- lm(divorce_rate_maine ~ margarine_consumption_per_capita, data = divorce_margarine)
+summary(cor_model)
+
+```
+the expected divorce rate in maine when margarine consumption is zero is 3.3 (intercept).
+when margarine consumption increases with one unit, the divorce rate increases with 0.2 (slope). in other words, there is a positive correlation between the two.
+the p-value (1.33e-08) for our coefficient is extremely small, indicating significant effect.
+a high adjusted R-squared value of 0.98 means that (according to this model) aprox 98% of the variation in the divorce rate data can be explained by margarine consumption.
+
+this exercise is a demonstration of how correlation doesn't imply causation. the drop in divorce rate as well as margarine consumption from 2000 to 2009 are most likely unrelated, in the sense that one isn't causing the other. this kind of relationship is called a spurious correlation. therefore, we cannot safely assume that a sudden increase in margarine consumption would cause an increase in divorce rate as well.
+
+## 2) Load the ‘GSSvocab’ dataset from the ‘car’ package. This dataset contains people’s scores on an English vocabulary test and includes demographic information
+
+```{r, results="hide"}
+data(package = 'carData')
+data('GSSvocab')
+GSSvocab
+```
+
+### Filter for the year 1978 and remove rows with missing values
+
+```{r}
+GSSvocab_1978 <- GSSvocab %>%
+  filter(year == 1978) %>%    # Filter for rows where year is 1978
+  na.omit() 
+```
+
+### Is a person’s  score on the vocabulary test (‘vocab’) significantly impacted by their level  of education (‘educ’)? Visualize the relationship in a plot and build a model. Briefly explain the results
+
+```{r, message=FALSE}
+ggplot(GSSvocab_1978, aes(x = vocab, y = educ, color = nativeBorn)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE) +
+  labs(title = "Relationship between vocubaluary test scores and level of education",
+       x = "Vocabulary test scores",
+       y = "DLevel of education")
+```
+fitting a model as well
+```{r}
+vocab_model1 <- lm(vocab ~ educ, data = GSSvocab_1978)
+summary(vocab_model1)
+```
+when education level increases with one unit, the vocabulary test score increases with 0.39 (slope), meaning there is a positive correlation between the two.
+the very small p-value (< 2e-16) for our coefficient indicates significant effect.
+an adjusted r-squared value of 0.28 means that this model can only account for aprox 28% of the variation in the vocabulary test score data.
+in conclusion, education level has a significant positive effect on vocabulary test scores.
+
+### Whether a person is the native of an English-speaking country (‘nativeBorn’) could potentially have an impact on the size of their vocabulary. Visualize the relationship and add the predictor to the model. Briefly explain the results.
+
+```{r, message=FALSE}
+ggplot(GSSvocab_1978, aes(x = nativeBorn, y = vocab)) +
+  geom_boxplot(fill = "lightblue", color = "darkblue") +
+  labs(title = "Effect of native-born status on vocabulary scores",
+       x = "Native-born status",
+       y = "Vocabulary score") +
+  theme_minimal()
+```
+```{r}
+vocab_model2 <- lm(vocab ~ educ + nativeBorn, data = GSSvocab_1978)
+summary(vocab_model2)
+```
+the model shows a significant positive effect of being native on vocabulary test scores.
+
+### Does  a  person’s  level  of  education  depend  on  whether they  are  a  native  of  the  country? Visualize the relationship. Do you think it makes sense to add the relationship as an interaction term? Try creating the model and briefly explain the results
+```{r, message=FALSE}
+ggplot(GSSvocab_1978, aes(x = nativeBorn, y = educ)) +
+  geom_boxplot(fill = "lightblue", color = "darkblue") +
+  labs(title = "Relationship between native-born status and education level",
+       x = "Native-born status",
+       y = "Education level") +
+  theme_minimal()
+```
+i'm also interested in the count of people with various years of education
+here i use the variable educGroup, as i want better readability (i dont want a bar for every year)
+```{r, message=FALSE}
+# Bar plot to show the distribution of education levels by native-born status
+ggplot(GSSvocab_1978, aes(x = educGroup, fill = nativeBorn)) +
+  geom_bar(position = "dodge") +
+  labs(title = "Distribution of education group by native-born status",
+       x = "Education group",
+       y = "Count",
+       fill = "Native-born status") +
+  theme_minimal()
+
+```
+in the boxplot, we see that the average educational level is aprox the same for both groups.
+
+the barplot lends more nuance to this. for natives, 12 years of education is the most common. there is a sizeable drop in number in the 13-15 years group, and only a small difference in number between the 16 years and 16+ years groups.
+for non-natives, there is a rather steady decrease in number chronologically.
+
+importantly, the sample size of the non-natives group is vastly smaller than that of the natives group. 
+
+```{r}
+vocab_model3 <- lm(vocab ~ educ * nativeBorn, data = GSSvocab_1978)
+summary(vocab_model3)
+```
+there's no significant interaction effect and there's no significant main effect of being native born when the interaction is included. the lack of significance may be due to the small sample size of non-natives mentioned earlier.
+
+### Which model performs best?
+```{r}
+anova(vocab_model1, vocab_model2, vocab_model3)
+```
+the second model performs better than the first model. there is no significant difference between the second and third model. since the third model is more complex (interaction effect), but doesn't perform better, we prefer the second model.
