@@ -1,0 +1,207 @@
+---
+title: "cultural_a3"
+author: "Laura Lundbye"
+date: "2024-11-19"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+install.packages("ggthemes")
+library(tidyverse)
+library(dplyr)
+library(ggthemes)
+library(brms)
+```
+
+
+```{r}
+#loading data 
+tags_df <- read.csv("/Users/laura/Desktop/uni/cultural_intro/banned_books_tags.csv")
+str(tags_df)
+```
+
+```{r}
+# preprocessing
+# selecting and cleaning relevant columns
+tags_df <- tags_df %>%
+select(Title, Author, Year, Goodreads_tags)
+
+# separating tags for grouping
+tags_df <- tags_df %>%
+separate_rows(Goodreads_tags, sep = ", ") %>%
+mutate(Goodreads_tags = trimws(Goodreads_tags))
+```
+
+```{r}
+# grouping goodreads tags into thematic groups
+tag_groups <- list(
+"LGBTQ" = c("LGBT", "Queer", "Transgender", "Sexuality", "Nontraditional Relationships"),
+"Sexual content" = c("Sex", "Sex Education", "Erotica",
+"Coming of Age", "Romance"),
+"Fear and Speculation" = c("Horror", "Paranormal", "Supernatural",
+"Dystopia", "Science Fiction"),
+"African American themes" = c("Colonialism", "Decolonization", "African American","Social Justice", "Slavery"),
+"Mental Health" = c("Mental Health", "Alcohol", "Drugs", "Addiction",
+"Depression", "Anxiety", "Therapy", "Trauma",
+"Abuse", "Recovery", "Health", "Well-Being"),
+"Conflict and War" = c("War", "Conflict", "Revolution", "Holocaust", "Violence",
+"World War II", "Vietnam War", "Iraq", "Afghanistan",
+"American Revolution", "Political", "Resistance",
+"Nationalism", "Imperialism", "Terrorism", "Holocaust", "Civil Rights Movement"),
+"History and Cultural Perspectives" = c("Historical Fiction", "History", "Memoir",
+"Biography", "Autobiography", "American History")
+)
+
+# assigning each tag to a thematic group
+df_with_groups <- tags_df %>%
+mutate(
+Thematic_Group = case_when(
+Goodreads_tags %in% tag_groups[["LGBTQ"]] ~ "LGBTQ",
+Goodreads_tags %in% tag_groups[["African American themes"]] ~ "African American themes",
+Goodreads_tags %in% tag_groups[["Sexual content"]] ~ "Sexual content",
+Goodreads_tags %in% tag_groups[["Fear and Speculation"]] ~ "Fear and Speculation",
+#Goodreads_tags %in% tag_groups[["Representation in Literature"]] ~ "Representation in Literature",
+Goodreads_tags %in% tag_groups[["Mental Health"]] ~ "Mental Health",
+Goodreads_tags %in% tag_groups[["Conflict and War"]] ~ "Conflict and War",
+Goodreads_tags %in% tag_groups[["History and Cultural Perspectives"]] ~ "History and Cultural Perspectives",
+TRUE ~ NA_character_
+)
+) %>%
+filter(!is.na(Thematic_Group))
+
+#keeping only one combination of thematic group and title
+df_with_groups <- df_with_groups %>%
+distinct(Title, Thematic_Group, .keep_all = TRUE)
+
+#counting how many times each thematic group shows up for each decade
+thematic_counts <- df_with_groups %>%
+  group_by(Thematic_Group, Year) %>% 
+  summarise(Count = n(), .groups = "drop")  
+```
+
+```{r}
+#plotting theme counts across categorical decades 
+custom_colors <- c(
+"LGBTQ" = "#1f78b4", # Blue
+"Sexual content" = "#6a3d9a", # Purple
+"Fear and Speculation" = "#33a02c", # Green
+#"Representation in Literature" = "#b15928", # Brown (optional)
+"Mental Health" = "#e31a1c", # Red (optional)
+"Conflict and War" = "#ff7f00", # Orange (optional)
+"History and Cultural Perspectives" = "#a6cee3", # Light Blue (optional)
+"African American themes" = "#FAA49A"
+)
+
+ggplot(thematic_counts, aes(x = Year, y = Count, color = Thematic_Group)) +
+geom_line(linewidth = 1.2) +
+labs(
+title = "Trends in Thematic Groups Over Years",
+x = "Year",
+y = "Number of Books",
+color = "Thematic Group"
+) +
+scale_color_manual(values = custom_colors) + # Use custom colors
+theme_stata() +
+theme(
+plot.title = element_text(hjust = 0.5, size = 16, face = "bold"),
+legend.position = "bottom",
+legend.title = element_text(size = 10),
+legend.text = element_text(size = 6)
+)
+```
+
+```{r}
+#further preprocessing data to make it ready for logistic regression
+df_with_groups <- df_with_groups[, !names(df_with_groups) %in% c("Author", "Goodreads_tags")]
+
+df_real <- df_with_groups %>%
+  mutate(Value = 1) %>%  #adding a column to indicate presence with 1 or 0 for logistic regression
+  pivot_wider(names_from = Thematic_Group, values_from = Value, values_fill = 0)
+
+#renaming for model
+colnames(df_real)[colnames(df_real) == "African American themes"] ="African_american_themes"
+colnames(df_real)[colnames(df_real) == "Conflict and War"] ="Conflict_war"
+colnames(df_real)[colnames(df_real) == "Fear and Speculation"] ="Fear_speculation"
+colnames(df_real)[colnames(df_real) == "History and Cultural Perspectives"] ="Hist_cult"
+colnames(df_real)[colnames(df_real) == "Mental Health"] ="Mental_health"
+colnames(df_real)[colnames(df_real) == "Sexual content"] ="Sexual_content"
+```
+
+```{r}
+#making sure Year is categorical and not continuous
+df_real$Year = as.factor(df_real$Year)
+
+#we tried creating a multivariate model first, but due to little data it didnt converge
+#here's the syntax anyway:
+
+#model <-
+#  bf(mvbind(Conflict_war, African_american_themes, Fear_speculation, Hist_cult, LGBTQ, Mental_health, Sexual_content) ~ Year)
+#fit1 <- brm(model, data = df_real, family = bernoulli, chains = 2, cores = 2)
+```
+
+
+```{r}
+#creating seven simpler models instead with theme presence as logistic outcome, predicted by the independent variable year
+
+# defining formulas
+formula_conflict <- bf(Conflict_war ~ Year)
+formula_african_american <- bf(African_american_themes ~ Year)
+formula_fear <- bf(Fear_speculation ~ Year)
+formula_hist <- bf(Hist_cult ~ Year)
+formula_lgbtq <- bf(LGBTQ ~ Year)
+formula_mental_health <- bf(Mental_health ~ Year)
+formula_sexual_content <- bf(Sexual_content ~ Year)
+
+# fitting each model
+fit_conflict <- brm(formula = formula_conflict, data = df_real, family = bernoulli(), chains = 2, cores = 2)
+fit_african_american <- brm(formula = formula_african_american, data = df_real, family = bernoulli(), chains = 2, cores = 2)
+fit_fear <- brm(formula = formula_fear, data = df_real, family = bernoulli(), chains = 2, cores = 2)
+fit_hist <- brm(formula = formula_hist, data = df_real, family = bernoulli(), chains = 2, cores = 2)
+fit_lgbtq <- brm(formula = formula_lgbtq, data = df_real, family = bernoulli(), chains = 2, cores = 2)
+fit_mental_health <- brm(formula = formula_mental_health, data = df_real, family = bernoulli(), chains = 2, cores = 2)
+fit_sexual_content <- brm(formula = formula_sexual_content, data = df_real, family = bernoulli(), chains = 2, cores = 2)
+
+# summarizing and plotting the models
+summary(fit_conflict)
+summary(fit_african_american)
+summary(fit_fear)
+summary(fit_hist)
+summary(fit_lgbtq)
+summary(fit_mental_health)
+summary(fit_sexual_content)
+plot(fit_conflict)
+plot(fit_african_american)
+plot(fit_fear)
+plot(fit_hist)
+plot(fit_lgbtq)
+plot(fit_mental_health)
+plot(fit_sexual_content)
+```
+
+
+```{r}
+#doing hypothesis tests to investigate the effect between 2000 and 2010, as our models only compare 2000 and 2010 to 1990 and not to each other
+
+hypothesis(fit_conflict, "Intercept + Year2000 = Intercept + Year2010")
+hypothesis(fit_lgbtq, "Intercept + Year2000 = Intercept + Year2010")
+hypothesis(fit_african_american, "Intercept + Year2000 = Intercept + Year2010")
+hypothesis(fit_fear, "Intercept + Year2000 = Intercept + Year2010")
+hypothesis(fit_hist, "Intercept + Year2000 = Intercept + Year2010")
+hypothesis(fit_mental_health, "Intercept + Year2000 = Intercept + Year2010")
+hypothesis(fit_sexual_content, "Intercept + Year2000 = Intercept + Year2010")
+
+#plotting them as well
+plot(hypothesis(fit_conflict, "Intercept + Year2000 = Intercept + Year2010"))
+plot(hypothesis(fit_lgbtq, "Intercept + Year2000 = Intercept + Year2010"))
+plot(hypothesis(fit_african_american, "Intercept + Year2000 = Intercept + Year2010"))
+plot(hypothesis(fit_fear, "Intercept + Year2000 = Intercept + Year2010"))
+plot(hypothesis(fit_hist, "Intercept + Year2000 = Intercept + Year2010"))
+plot(hypothesis(fit_mental_health, "Intercept + Year2000 = Intercept + Year2010"))
+plot(hypothesis(fit_sexual_content, "Intercept + Year2000 = Intercept + Year2010"))
+
+```
+
