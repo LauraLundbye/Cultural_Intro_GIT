@@ -12,7 +12,7 @@ knitr::opts_chunk$set(echo = TRUE)
 options(repos = c(CRAN = "https://cloud.r-project.org"))
 ```
 
-```{r, results="hide", message=FALSE}
+```{r}
 install.packages('dslabs')
 install.packages('car')
 library(dplyr)
@@ -21,7 +21,7 @@ library(dslabs)
 library(car)
 ```
 ## 1) Load  the 'divorce_margarine'dataset  from  the 'dslabs' package.  Investigate  the  correlation between  margarine  consumption  and  divorce  rates  in  Maine.  Would  an  increase  in  the preference for margarine lead to skyrocketing divorce rate?
-```{r, results="hide"}
+```{r}
 data(package = "dslabs")
 data("divorce_margarine")
 divorce_margarine
@@ -29,7 +29,7 @@ divorce_margarine
 
 visually assessing correlation between predictor and outcome
 
-```{r, message=FALSE}
+```{r}
 ggplot(divorce_margarine, aes(x = margarine_consumption_per_capita, y = divorce_rate_maine)) +
   geom_point() +
   geom_smooth(method = "lm", se = FALSE, color = "pink") +
@@ -56,7 +56,7 @@ this exercise is a demonstration of how correlation doesn't imply causation. the
 
 ## 2) Load the ‘GSSvocab’ dataset from the ‘car’ package. This dataset contains people’s scores on an English vocabulary test and includes demographic information
 
-```{r, results="hide"}
+```{r}
 data(package = 'carData')
 data('GSSvocab')
 GSSvocab
@@ -72,7 +72,7 @@ GSSvocab_1978 <- GSSvocab %>%
 
 ### Is a person’s  score on the vocabulary test (‘vocab’) significantly impacted by their level  of education (‘educ’)? Visualize the relationship in a plot and build a model. Briefly explain the results
 
-```{r, message=FALSE}
+```{r}
 ggplot(GSSvocab_1978, aes(x = vocab, y = educ, color = nativeBorn)) +
   geom_point() +
   geom_smooth(method = "lm", se = FALSE) +
@@ -92,7 +92,7 @@ in conclusion, education level has a significant positive effect on vocabulary t
 
 ### Whether a person is the native of an English-speaking country (‘nativeBorn’) could potentially have an impact on the size of their vocabulary. Visualize the relationship and add the predictor to the model. Briefly explain the results.
 
-```{r, message=FALSE}
+```{r}
 ggplot(GSSvocab_1978, aes(x = nativeBorn, y = vocab)) +
   geom_boxplot(fill = "lightblue", color = "darkblue") +
   labs(title = "Effect of native-born status on vocabulary scores",
@@ -107,7 +107,7 @@ summary(vocab_model2)
 the model shows a significant positive effect of being native on vocabulary test scores.
 
 ### Does  a  person’s  level  of  education  depend  on  whether they  are  a  native  of  the  country? Visualize the relationship. Do you think it makes sense to add the relationship as an interaction term? Try creating the model and briefly explain the results
-```{r, message=FALSE}
+```{r}
 ggplot(GSSvocab_1978, aes(x = nativeBorn, y = educ)) +
   geom_boxplot(fill = "lightblue", color = "darkblue") +
   labs(title = "Relationship between native-born status and education level",
@@ -117,7 +117,7 @@ ggplot(GSSvocab_1978, aes(x = nativeBorn, y = educ)) +
 ```
 i'm also interested in the count of people with various years of education
 here i use the variable educGroup, as i want better readability (i dont want a bar for every year)
-```{r, message=FALSE}
+```{r}
 # Bar plot to show the distribution of education levels by native-born status
 ggplot(GSSvocab_1978, aes(x = educGroup, fill = nativeBorn)) +
   geom_bar(position = "dodge") +
