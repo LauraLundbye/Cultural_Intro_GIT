@@ -2,9 +2,7 @@
 title: "cultural_intro_a2"
 author: "Laura Lundbye"
 date: "2024-11-10"
-output:
-  pdf_document: default
-  html_document: default
+output: git_document
 ---
 
 ```{r setup, include=FALSE}
