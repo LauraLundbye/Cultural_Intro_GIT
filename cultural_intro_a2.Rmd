@@ -2,7 +2,7 @@
 title: "cultural_intro_a2"
 author: "Laura Lundbye"
 date: "2024-11-10"
-output: rmarkdown::github_document
+output: github_document
 ---
 
 ```{r setup, include=FALSE}
@@ -54,7 +54,7 @@ this exercise is a demonstration of how correlation doesn't imply causation. the
 
 ## 2) Load the ‘GSSvocab’ dataset from the ‘car’ package. This dataset contains people’s scores on an English vocabulary test and includes demographic information
 
-```{r}
+```{r, echo=T, include=FALSE}
 data(package = 'carData')
 data('GSSvocab')
 GSSvocab
