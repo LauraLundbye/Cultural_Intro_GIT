@@ -2,7 +2,7 @@
 title: "cultural_intro_a2"
 author: "Laura Lundbye"
 date: "2024-11-10"
-output: git_document
+output: rmarkdown::github_document
 ---
 
 ```{r setup, include=FALSE}
