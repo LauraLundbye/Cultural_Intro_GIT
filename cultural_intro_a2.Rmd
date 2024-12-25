@@ -143,4 +143,4 @@ there's no significant interaction effect and there's no significant main effect
 ```{r}
 anova(vocab_model1, vocab_model2, vocab_model3)
 ```
-the second model performs better than the first model. there is no significant difference between the second and third model. since the third model is more complex (interaction effect), but doesn't perform better, we prefer the second model.
+the second model performs better than the first model. there is no significant difference between the second and third model. since the third model is more complex because of the interaction effect, but doesn't perform better, we prefer the second model.
